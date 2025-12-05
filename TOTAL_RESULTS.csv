@@ -1,0 +1,79 @@
+Dataset,Model,Accuracy,AP,ROC_AUC,Real_Acc,Fake_Acc,Samples,Category,Notes
+ForenSynths Val,Baseline (NPR.pth),46.70%,N/A,N/A,N/A,N/A,1600,Validation,Model gốc pretrained
+ForenSynths Val,Trained (30 epochs),100.00%,100.00%,100.00%,100.00%,100.00%,1600,Validation,Sau khi train trên ForenSynths
+UniversalFakeDetect,Trained (30 epochs),91.84%,97.36%,97.53%,94.01%,89.68%,16000,Cross-Dataset,Generalization tốt
+GANGen-Detection,Trained (30 epochs),64.37%,73.61%,78.54%,32.96%,95.77%,36000,Cross-Dataset,Fake detection mạnh nhưng real yếu
+ProGAN,Trained (Epoch 29),99.60%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+StyleGAN,Trained (Epoch 29),96.20%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+StyleGAN2,Trained (Epoch 29),97.20%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+BigGAN,Trained (Epoch 29),84.20%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+CycleGAN,Trained (Epoch 29),85.90%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+StarGAN,Trained (Epoch 29),99.70%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+GauGAN,Trained (Epoch 29),80.20%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+DeepFake,Trained (Epoch 29),68.10%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Cross-validation trong quá trình training
+8-GAN Mean,Trained (Epoch 29),88.90%,N/A,N/A,N/A,N/A,N/A,GAN-Specific,Trung bình 8 loại GAN
+Overall Mean,Trained (30 epochs),85.40%,N/A,N/A,N/A,N/A,53600,Summary,Trung bình 3 datasets chính (ForenSynths + UniversalFakeDetect + GANGen-Detection)
+
+IMPROVEMENTS (Baseline → Trained):
+ForenSynths,Improvement,+53.30%,N/A,N/A,N/A,N/A,N/A,Delta,46.7% → 100.0% (vượt mục tiêu 72-75%)
+Target Achievement,Status,EXCEEDED,N/A,N/A,N/A,N/A,N/A,Achievement,Vượt mục tiêu +25-28%
+
+TRAINING CONFIGURATION:
+Parameter,Value,Description,,,,,
+Model,ResNet-50 with NPR,Mạng nơ-ron sâu 50 layers với Noise Print Regularization,,,,,
+Training Dataset,ForenSynths,144024 ảnh training với 4 classes (car/cat/chair/horse),,,,,
+Validation Dataset,ForenSynths,1600 ảnh validation,,,,,
+Epochs,30,Số lượt duyệt qua toàn bộ dataset,,,,,
+Batch Size,32,Số ảnh xử lý cùng lúc mỗi bước,,,,,
+Learning Rate,0.0001,Tốc độ học ban đầu,,,,,
+LR Scheduler,CosineAnnealingLR,Điều chỉnh learning rate theo hàm cosine,,,,,
+Optimizer,Adam,Thuật toán tối ưu hóa adaptive,,,,,
+AMP,Enabled,Automatic Mixed Precision để tăng tốc training,,,,,
+Label Smoothing,0.05,Giảm overfitting bằng cách làm mềm labels,,,,,
+GPU,Kaggle P100,17.1GB VRAM,,,,,
+Training Time,11h 37min,Thời gian training thực tế,,,,,
+Checkpoint Size,5.8MB,Kích thước model đã train,,,,,
+
+DATASET STATISTICS:
+Dataset,Total Samples,Real,Fake,Classes,Status
+ForenSynths Train,144024,72012,72012,4 (car/cat/chair/horse),Used for training
+ForenSynths Val,1600,800,800,4 (car/cat/chair/horse),Used for validation
+UniversalFakeDetect,16000,8000,8000,Multiple GAN types,Evaluated only
+GANGen-Detection,36000,18000,18000,Multiple GAN types,Evaluated only
+GenImage,N/A,N/A,N/A,N/A,Not available in workspace
+DiffusionForensics,N/A,N/A,N/A,N/A,Structure error (no class folders)
+
+PERFORMANCE ANALYSIS:
+Category,Performance,Evaluation
+ForenSynths (trained dataset),Excellent (100%),Perfect classification - model học tốt từ training data
+UniversalFakeDetect (unseen),Excellent (91.84%),Generalization mạnh ra dataset chưa thấy
+GANGen-Detection (unseen),Moderate (64.37%),Fake detection tốt (95.77%) nhưng real detection yếu (32.96%)
+8-GAN Benchmark,Very Good (88.9%),Cross-validation tốt trên nhiều kiến trúc GAN
+ProGAN/StarGAN,Excellent (99%+),Nhận diện rất tốt các GAN này
+DeepFake/GauGAN,Moderate (68-80%),Các GAN này tạo ảnh realistic hơn nên khó phát hiện
+
+KEY FINDINGS:
+1. Model đạt 100% accuracy trên ForenSynths validation set
+2. Generalization tốt: 91.84% trên UniversalFakeDetect (dataset hoàn toàn mới)
+3. 8-GAN benchmark: 88.9% mean accuracy cho thấy versatility
+4. Vượt mục tiêu ban đầu (72-75%) với +25-28%
+5. Thời gian training hợp lý: 11h 37min trên P100 GPU
+6. Model size nhỏ gọn: 5.8MB (dễ deploy)
+7. High confidence scores: AP và ROC-AUC >95% trên nhiều datasets
+8. Weakness: Real image detection trên GANGen-Detection cần improve (chỉ 32.96%)
+
+RECOMMENDATIONS:
+Production Use:
+- Sử dụng cho UniversalFakeDetect-type datasets (balanced performance)
+- Monitor confidence scores (AP/ROC-AUC cao = reliable predictions)
+
+Future Improvements:
+- Thu thập thêm real images đa dạng để cải thiện real detection
+- Fine-tune trên DeepFake/GauGAN samples (hiện tại chỉ 68-80%)
+- Implement threshold tuning cho từng loại dataset
+- Thêm data augmentation cho GANGen-Detection style images
+
+GENERATED: 2025-11-21
+MODEL: trained_model_forensynths_100acc/model_epoch_last.pth
+EVALUATION SCRIPT: evaluate_all_datasets.py
+TRAINING PLATFORM: Kaggle (P100 GPU)

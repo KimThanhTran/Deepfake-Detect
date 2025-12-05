@@ -1,0 +1,13 @@
+# Attendance System Requirements
+gradio>=4.0.0
+opencv-python>=4.8.0
+face_recognition>=1.3.0
+pymongo>=4.5.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Note: face_recognition requires dlib
+# On Windows, you may need to install:
+# pip install cmake
+# pip install dlib
+# Or use pre-built wheel from: https://github.com/z-mahmud22/Dlib_Windows_Python3.x

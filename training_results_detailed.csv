@@ -1,0 +1,25 @@
+Model,Dataset,Split,Class,Real_Images,Fake_Images,Total_Images,Accuracy,Average_Precision,Real_Accuracy,Fake_Accuracy,Training_Time,Epochs,Batch_Size,Learning_Rate,Notes
+Baseline (NPR.pth),ForenSynths,Val,Overall,800,800,1600,46.7%,N/A,N/A,N/A,0h,0,N/A,N/A,Pretrained model before fine-tuning
+Trained,ForenSynths,Val,Overall,800,800,1600,100.0%,100.0%,100.0%,100.0%,10h 49min,30,32,0.0001,After fine-tuning on ForenSynths
+Trained,ForenSynths,Val,Car,200,200,400,100.0%,N/A,100.0%,100.0%,10h 49min,30,32,0.0001,Per-class performance
+Trained,ForenSynths,Val,Cat,200,200,400,100.0%,N/A,100.0%,100.0%,10h 49min,30,32,0.0001,Per-class performance
+Trained,ForenSynths,Val,Chair,200,200,400,100.0%,N/A,100.0%,100.0%,10h 49min,30,32,0.0001,Per-class performance
+Trained,ForenSynths,Val,Horse,200,200,400,100.0%,N/A,100.0%,100.0%,10h 49min,30,32,0.0001,Per-class performance
+Baseline (Epoch 0),ProGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,50.9%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),ProGAN,Benchmark,N/A,N/A,N/A,N/A,99.6%,100.0%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),StyleGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,60.4%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),StyleGAN,Benchmark,N/A,N/A,N/A,N/A,96.2%,99.9%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),StyleGAN2,Benchmark,N/A,N/A,N/A,N/A,50.0%,71.4%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),StyleGAN2,Benchmark,N/A,N/A,N/A,N/A,97.2%,99.9%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),BigGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,45.6%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),BigGAN,Benchmark,N/A,N/A,N/A,N/A,84.2%,90.8%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),CycleGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,52.9%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),CycleGAN,Benchmark,N/A,N/A,N/A,N/A,85.9%,98.5%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),StarGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,50.3%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),StarGAN,Benchmark,N/A,N/A,N/A,N/A,99.7%,100.0%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch
+Baseline (Epoch 0),GauGAN,Benchmark,N/A,N/A,N/A,N/A,50.0%,65.2%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),GauGAN,Benchmark,N/A,N/A,N/A,N/A,80.2%,83.9%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch - Lowest accuracy
+Baseline (Epoch 0),DeepFake,Benchmark,N/A,N/A,N/A,N/A,50.1%,60.1%,N/A,N/A,0h,0,32,0.0001,Before training
+Trained (Epoch 29),DeepFake,Benchmark,N/A,N/A,N/A,N/A,68.1%,69.3%,N/A,N/A,10h 49min,30,32,0.0001,Final epoch - Lowest accuracy
+Baseline (Epoch 0),Mean (8 GANs),Benchmark,N/A,N/A,N/A,N/A,50.0%,57.1%,N/A,N/A,0h,0,32,0.0001,Average across 8 GAN types
+Trained (Epoch 29),Mean (8 GANs),Benchmark,N/A,N/A,N/A,N/A,88.9%,92.8%,N/A,N/A,10h 49min,30,32,0.0001,Average across 8 GAN types

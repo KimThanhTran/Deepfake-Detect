@@ -1,0 +1,28 @@
+# Python cache and logs
+__pycache__/
+*.pyc
+*.pyo
+
+# Datasets and large generated content
+dataset/
+data/
+results/
+checkpoints/
+trained_model_forensynths_100acc/
+assets/attendance/
+attendance/logs.csv
+
+# Model weights and large binaries
+*.pth
+*.pt
+*.onnx
+*.ckpt
+*.ipynb
+
+# Kaggle packaging artifacts
+kaggle_upload.zip
+kaggle_upload/
+
+# VSCode and environment
+.vscode/
+.env

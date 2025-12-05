@@ -1,0 +1,22 @@
+Dataset,Model,Accuracy,AP,ROC-AUC,Real_Acc,Fake_Acc,Total_Samples,Notes
+ForenSynths,Baseline (NPR.pth),46.7%,N/A,N/A,N/A,N/A,1600,Original pretrained model
+ForenSynths,Trained (Epoch 29),100.00%,100.00%,100.00%,100.00%,100.00%,1600,After 30 epochs training on ForenSynths
+UniversalFakeDetect,Baseline (NPR.pth),N/A,N/A,N/A,N/A,N/A,16000,Not evaluated with baseline
+UniversalFakeDetect,Trained (Epoch 29),91.84%,97.36%,97.53%,94.01%,89.68%,16000,Excellent generalization
+GANGen-Detection,Baseline (NPR.pth),N/A,N/A,N/A,N/A,N/A,36000,Not evaluated with baseline
+GANGen-Detection,Trained (Epoch 29),64.37%,73.61%,78.54%,32.96%,95.77%,36000,Strong fake detection but weak real detection
+
+8-GAN Benchmark Results (from training log):
+ProGAN,Trained (Epoch 29),99.6%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+StyleGAN,Trained (Epoch 29),96.2%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+StyleGAN2,Trained (Epoch 29),97.2%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+BigGAN,Trained (Epoch 29),84.2%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+CycleGAN,Trained (Epoch 29),85.9%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+StarGAN,Trained (Epoch 29),99.7%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+GauGAN,Trained (Epoch 29),80.2%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+DeepFake,Trained (Epoch 29),68.1%,N/A,N/A,N/A,N/A,N/A,Cross-validation during training
+8-GAN Mean,Trained (Epoch 29),88.9%,N/A,N/A,N/A,N/A,N/A,Average across 8 GAN types
+
+Summary:
+Overall Performance,Trained Model,85.4%,N/A,N/A,N/A,N/A,53600,Average across 3 evaluated datasets (ForenSynths + UniversalFakeDetect + GANGen-Detection)
+Target Achievement,Trained vs Baseline,+53.3%,N/A,N/A,N/A,N/A,N/A,ForenSynths: 46.7% → 100% (exceeded 72-75% target)

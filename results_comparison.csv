@@ -1,0 +1,21 @@
+Model,Dataset,Accuracy,AP,Real_Acc,Fake_Acc,Notes
+Baseline,ForenSynths_Val,46.7%,N/A,N/A,N/A,NPR.pth pretrained model
+Trained,ForenSynths_Val,100.0%,100.0%,100.0%,100.0%,After 30 epochs fine-tuning
+Baseline,ProGAN,50.0%,50.9%,N/A,N/A,Epoch 0
+Trained,ProGAN,99.6%,100.0%,N/A,N/A,Epoch 29
+Baseline,StyleGAN,50.0%,60.4%,N/A,N/A,Epoch 0
+Trained,StyleGAN,96.2%,99.9%,N/A,N/A,Epoch 29
+Baseline,StyleGAN2,50.0%,71.4%,N/A,N/A,Epoch 0
+Trained,StyleGAN2,97.2%,99.9%,N/A,N/A,Epoch 29
+Baseline,BigGAN,50.0%,45.6%,N/A,N/A,Epoch 0
+Trained,BigGAN,84.2%,90.8%,N/A,N/A,Epoch 29
+Baseline,CycleGAN,50.0%,52.9%,N/A,N/A,Epoch 0
+Trained,CycleGAN,85.9%,98.5%,N/A,N/A,Epoch 29
+Baseline,StarGAN,50.0%,50.3%,N/A,N/A,Epoch 0
+Trained,StarGAN,99.7%,100.0%,N/A,N/A,Epoch 29
+Baseline,GauGAN,50.0%,65.2%,N/A,N/A,Epoch 0
+Trained,GauGAN,80.2%,83.9%,N/A,N/A,Epoch 29
+Baseline,DeepFake,50.1%,60.1%,N/A,N/A,Epoch 0
+Trained,DeepFake,68.1%,69.3%,N/A,N/A,Epoch 29
+Baseline,Mean_8_GANs,50.0%,57.1%,N/A,N/A,Average across 8 GAN types
+Trained,Mean_8_GANs,88.9%,92.8%,N/A,N/A,Average across 8 GAN types
