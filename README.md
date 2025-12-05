@@ -1,42 +1,93 @@
-# Rethinking the Up-Sampling Operations in CNN-based Generative Network for Generalizable Deepfake Detection
+# Phát hiện Deepfake bằng NPR — Bản cải tiến
 
 <p align="center">
-	<br>
 	Beijing Jiaotong University, YanShan University, A*Star
 </p>
 
-<img src="./NPR.png" width="100%" alt="overall pipeline">
+<img src="./NPR.png" width="100%" alt="Sơ đồ tổng quan">
 
-Reference github repository for the paper [Rethinking the Up-Sampling Operations in CNN-based Generative Network for Generalizable Deepfake Detection](https://arxiv.org/abs/2312.10461).
+Tham chiếu tới bài báo CVPR'24: [Rethinking the Up-Sampling Operations in CNN-based Generative Network for Generalizable Deepfake Detection](https://arxiv.org/abs/2312.10461).
 ```
 @misc{tan2023rethinking,
-      title={Rethinking the Up-Sampling Operations in CNN-based Generative Network for Generalizable Deepfake Detection}, 
-      author={Chuangchuang Tan and Huan Liu and Yao Zhao and Shikui Wei and Guanghua Gu and Ping Liu and Yunchao Wei},
-      year={2023},
-      eprint={2312.10461},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+    title={Rethinking the Up-Sampling Operations in CNN-based Generative Network for Generalizable Deepfake Detection}, 
+    author={Chuangchuang Tan and Huan Liu and Yao Zhao and Shikui Wei and Guanghua Gu and Ping Liu and Yunchao Wei},
+    year={2023},
+    eprint={2312.10461},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
 }
 ```
 
-## News 🆕
-- `2024/02`: NPR is accepted by CVPR 2024! Congratulations and thanks to my all co-authors!
-- `2024/05`: [🤗Online Demo](https://huggingface.co/spaces/tancc/Generalizable_Deepfake_Detection-NPR-CVPR2024)
+## Tin mới 🆕
+- `2024/02`: NPR được chấp nhận tại CVPR 2024.
+- `2024/05`: [Demo trực tuyến](https://huggingface.co/spaces/tancc/Generalizable_Deepfake_Detection-NPR-CVPR2024)
 
 <a href="https://huggingface.co/spaces/tancc/Generalizable_Deepfake_Detection-NPR-CVPR2024"><img src="assets/demo_detection.gif" width="70%"></a>
 
-## Environment setup
-**Classification environment:** 
-We recommend installing the required packages by running the command:
-```sh
-pip install -r requirements.txt
-```
-In order to ensure the reproducibility of the results, we provide the following suggestions：
-- Docker image: nvcr.io/nvidia/tensorflow:21.02-tf1-py3
-- Conda environment: [./pytorch18/bin/python](https://drive.google.com/file/d/16MK7KnPebBZx5yeN6jqJ49k7VWbEYQPr/view) 
-- Random seed during testing period: [Random seed](https://github.com/chuangchuangtan/NPR-DeepfakeDetection/blob/b4e1bfa59ec58542ab5b1e78a3b75b54df67f3b8/test.py#L14)
+## Bản cải tiến có gì hơn mẫu gốc?
 
-## Getting the data
+Bản này bổ sung các cải tiến thực tế nhằm tăng khả năng tổng quát, ổn định huấn luyện và thân thiện Windows, vẫn giữ lõi NPR:
+
+- Adaptive NPR: phần dư NPR đa tỉ lệ có thể học (`--adaptive_npr`).
+- Tinh chỉnh nhánh tần số: ổn định trộn đặc trưng trong `networks/frequency_branch.py`.
+- Nâng cấp huấn luyện: mixed precision (`--use_amp`), label smoothing (`--label_smoothing`), cosine LR (`--cosine_lr`).
+- Chế độ GenImage: transform chuẩn và seed=70 để so sánh công bằng (`--genimage_mode`).
+- Script đánh giá mạnh: `evaluate.py`, `evaluate_all_datasets.py`, `evaluate_genimage.py` xuất CSV (Acc, ROC-AUC, PR-AUC, FPR, chênh lệch tổng quát).
+- Tài liệu và lệnh PowerShell cho Windows; xử lý đường dẫn dài, script tải dữ liệu.
+
+## Kết quả tổng hợp (từ TOTAL_RESULTS.csv)
+
+- ForenSynths Val:
+  - Baseline (NPR.pth): Accuracy 46.70% (model gốc pretrained).
+  - Sau khi train 30 epoch: Accuracy 100.00%, AP 100.00%, ROC-AUC 100.00%.
+- UniversalFakeDetect (cross-dataset): Accuracy 91.84%, AP 97.36%, ROC-AUC 97.53%, Real_Acc 94.01%, Fake_Acc 89.68% (16,000 mẫu) → tổng quát tốt.
+- GANGen-Detection (cross-dataset): Accuracy 64.37%, AP 73.61%, ROC-AUC 78.54%, Real_Acc 32.96%, Fake_Acc 95.77% (36,000 mẫu) → phát hiện fake mạnh, real còn yếu.
+- 8-GAN (Epoch 29): ProGAN 99.60%, StyleGAN 96.20%, StyleGAN2 97.20%, BigGAN 84.20%, CycleGAN 85.90%, StarGAN 99.70%, GauGAN 80.20%, DeepFake 68.10% → trung bình 88.90%.
+- Mean 3 bộ chính (ForenSynths + UniversalFD + GANGen): 85.40%.
+- Cải thiện so với baseline ForenSynths: +53.30% (46.7% → 100.0%), vượt mục tiêu 72–75% (+25–28%).
+
+## Khởi chạy nhanh (Windows PowerShell)
+
+1) Tạo môi trường và cài đặt phụ thuộc
+
+```powershell
+python -m venv .venv
+ .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install --index-url https://download.pytorch.org/whl/cu121 torch==2.2.2 torchvision==0.17.2 --prefer-binary
+
+# Kiểm tra CUDA
+python - <<'PY'
+import torch
+print('Torch:', torch.__version__, 'CUDA available:', torch.cuda.is_available())
+if torch.cuda.is_available():
+    print('Device:', torch.cuda.get_device_name(0))
+else:
+    print('CUDA chưa bật: hãy cập nhật driver NVIDIA (R530+ cho cu121).')
+PY
+```
+
+2) Tải dữ liệu
+
+```powershell
+pwsh .\download_dataset.ps1
+```
+
+3) Kiểm thử nhanh (CPU/GPU)
+
+```powershell
+python .\test.py --model_path .\NPR.pth --batch_size 8 --fast --max_dirs 1 --max_images 64
+```
+
+4) Đánh giá đầy đủ
+
+```powershell
+python .\test.py --model_path .\NPR.pth --batch_size 64
+# Hoặc quét tất cả bộ chuẩn và xuất CSV tổng hợp
+python .\evaluate.py --model_path .\NPR.pth --batch_size 32 --out_csv .\results\evaluation_details.csv
+```
+
+## Dữ liệu cần thiết
 <!-- 
 Download dataset from [CNNDetection CVPR2020 (Table1 results)](https://github.com/peterwang512/CNNDetection), [GANGen-Detection (Table2 results)](https://github.com/chuangchuangtan/GANGen-Detection) ([googledrive](https://drive.google.com/drive/folders/11E0Knf9J1qlv2UuTnJSOFUjIIi90czSj?usp=sharing)), [UniversalFakeDetect CVPR2023](https://github.com/Yuheng-Li/UniversalFakeDetect) ([googledrive](https://drive.google.com/drive/folders/1nkCXClC7kFM01_fqmLrVNtnOYEFPtWO-?usp=drive_link)), [DIRE 2023ICCV](https://github.com/ZhendongWang6/DIRE) ([googledrive](https://drive.google.com/drive/folders/1jZE4hg6SxRvKaPYO_yyMeJN_DOcqGMEf?usp=sharing)), Diffusion1kStep [googledrive](https://drive.google.com/drive/folders/14f0vApTLiukiPvIHukHDzLujrvJpDpRq?usp=sharing).
 -->
@@ -132,116 +183,82 @@ datasets
 ```
 </details>
 
-## Training the model 
+## Huấn luyện mô hình 
+
+Huấn luyện NPR cơ bản (Linux)
 ```sh
 CUDA_VISIBLE_DEVICES=0 ./pytorch18/bin/python train.py --name 4class-resnet-car-cat-chair-horse --dataroot ./datasets/ForenSynths_train_val --classes car,cat,chair,horse --batch_size 32 --delr_freq 10 --lr 0.0002 --niter 50
 ```
 
-## Testing the detector
-Modify the dataroot in test.py.
-```sh
-CUDA_VISIBLE_DEVICES=0 ./pytorch18/bin/python test.py --model_path ./NPR.pth  --batch_size {BS}
-```
-
-## Evaluation (Accuracy, AUC, FPR, Generalization)
-
-You can generate a detailed CSV with per-subset metrics including Accuracy, ROC-AUC, PR-AUC, False Positive Rate, and a simple generalization gap (drop from an optional in-domain reference split):
-
-```powershell
-# Windows PowerShell example
-python .\evaluate.py --model_path .\NPR.pth --batch_size 32 --out_csv evaluation_details.csv
-
-# Optionally, provide an in-domain validation root to compute a generalization gap
-python .\evaluate.py --model_path .\NPR.pth --batch_size 32 --in_domain_root .\dataset\ForenSynths\test
-```
-
-The script scans all known benchmark folders (same sets as `run_all_tests.py`) and writes `evaluation_details.csv`.
-
-### Windows quick start (PowerShell)
-
-1) Install Python dependencies and CUDA-enabled PyTorch (recommended)
-
-```powershell
-# Create and activate a venv (optional but recommended)
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Install project requirements
-pip install -r requirements.txt
-
-# Install CUDA-enabled PyTorch (requires recent NVIDIA driver)
-pip install --index-url https://download.pytorch.org/whl/cu121 torch==2.2.2 torchvision==0.17.2 --prefer-binary
-
-# Verify CUDA
-python - <<'PY'
-import torch
-print('Torch:', torch.__version__, 'CUDA available:', torch.cuda.is_available())
-if torch.cuda.is_available():
-    print('Device:', torch.cuda.get_device_name(0))
-else:
-    print('Update NVIDIA driver to enable CUDA (R530+ recommended for cu121).')
-PY
-```
-
-2) Download datasets (Google Drive mirrors) and extract
-
-```powershell
-pwsh ./download_dataset.ps1
-```
-
-3) Quick smoke test (CPU/GPU): limit to 1 subfolder and 64 images
-
-```powershell
-python .\test.py --model_path .\NPR.pth --batch_size 8 --fast --max_dirs 1 --max_images 64
-```
-
-4) Full evaluation to reproduce tables (GPU strongly recommended)
-
-```powershell
-# Only the official test split is used for ForenSynths by default
-python .\test.py --model_path .\NPR.pth --batch_size 64
-
-# Or generate a CSV summary across all tables
-python .\run_all_tests.py --model_path .\NPR.pth --batch_size 64
-```
-
-### Optional: Enable Adaptive NPR and improved training
-
-We added an Adaptive NPR module and training upgrades that may improve generalization:
-- AdaptiveNPR: learnable, multi-scale NPR residuals (enable via `--adaptive_npr` during training).
-- Mixed precision (`--use_amp`), label smoothing (`--label_smoothing 0.05`), cosine LR (`--cosine_lr`).
-
-Example training command:
-
+Huấn luyện cải tiến trên Windows (Adaptive NPR, AMP, smoothing, cosine LR)
 ```powershell
 python .\train.py --name npr_adaptive --dataroot .\datasets\ForenSynths_train_val \
     --classes car,cat,chair,horse --batch_size 32 --lr 2e-4 --niter 50 \
     --adaptive_npr --use_amp --label_smoothing 0.05 --cosine_lr
 ```
 
-## GenImage evaluation
+## Kiểm thử bộ phát hiện
+Có thể chỉnh `dataroot` trong `test.py` nếu cần.
+```powershell
+python .\test.py --model_path .\NPR.pth --batch_size 32
+```
+
+## Đánh giá (Accuracy, AUC, FPR, Tổng quát hóa)
+
+Sinh CSV chi tiết gồm Acc, ROC-AUC, PR-AUC, FPR và chênh lệch tổng quát (so với split nội miền tùy chọn):
+
+```powershell
+python .\evaluate.py --model_path .\NPR.pth --batch_size 32 --out_csv .\results\evaluation_details.csv
+
+# Optional in-domain reference to compute generalization gap
+python .\evaluate.py --model_path .\NPR.pth --batch_size 32 --in_domain_root .\dataset\ForenSynths\test
+```
+
+Script sẽ quét các benchmark đã biết và ghi `results/evaluation_details.csv`.
+
+### Windows quick start (PowerShell)
+
+Tái hiện đầy đủ các bảng:
+
+```powershell
+# ForenSynths official test split by default
+python .\test.py --model_path .\NPR.pth --batch_size 64
+
+# Consolidated CSV across tables
+python .\run_all_tests.py --model_path .\NPR.pth --batch_size 64
+```
+
+### Tùy chọn: Bật Adaptive NPR và nâng cấp huấn luyện
+
+Bật các thành phần cải tiến để tổng quát tốt hơn:
+- AdaptiveNPR (`--adaptive_npr`)
+- Mixed precision (`--use_amp`)
+- Label smoothing (`--label_smoothing 0.05`)
+- Cosine LR (`--cosine_lr`)
+
+## Đánh giá GenImage
 
 For fair comparison with GenImage numbers, use the provided script which applies the required transform (translate & duplicate), sets random seed=70, and evaluates the official subsets:
 
 ```powershell
-# Replace <GENIMAGE_ROOT> with the path that contains subfolders: ADM, biggan, glide, midjourney, sdv5, vqdm, wukong.
+# Replace <GENIMAGE_ROOT> with the path containing subset folders: ADM, biggan, glide, midjourney, sdv5, vqdm, wukong.
 # Each subset should have 'train' and 'val' with class folders 'ai' and 'nature'. The script evaluates the 'val' split.
 python .\evaluate_genimage.py --genimage_root <GENIMAGE_ROOT> --model_path .\NPR.pth --batch_size 32 --out_csv .\results\results_genimage.csv
 ```
 
 This will print per-subset Acc and A.P. and write a CSV to `results/results_genimage.csv`.
 
-Notes:
-- If `torch.cuda.is_available()` is False after installing cu121 wheels, update your NVIDIA driver to a recent version (e.g., via GeForce Experience or the NVIDIA driver page). Restart Windows and re-check.
-- For GenImage-specific settings and AIGCDetectBenchmark, follow the dedicated notes below.
+Ghi chú:
+- Nếu `torch.cuda.is_available()` là False sau khi cài cu121, hãy cập nhật driver NVIDIA (GeForce Experience hoặc trang driver). Khởi động lại Windows và kiểm tra lại.
+- Với thiết lập riêng của GenImage và AIGCDetectBenchmark, xem các ghi chú bên dưới.
 
-### GenImage training (sdv4 → cross-subset evaluation)
+### Huấn luyện GenImage (sdv4 → cross-subset)
 
 To reproduce the GenImage fine-tuning scenario (train on sdv4, evaluate on other subsets), train with GenImage-compatible settings and seed=70. On Windows PowerShell:
 
 ```powershell
 # Train on sdv4 (ai/nature) with GenImage transform and seed=70.
-# <GENIMAGE_ROOT> is the folder that contains subset folders such as "Stable Diffusion V1.4" (sdv4), "sdv5", ADM, etc.
+# <GENIMAGE_ROOT> contains subset folders such as "Stable Diffusion V1.4" (sdv4), "sdv5", ADM, etc.
 # We set classes to sdv4 so training reads <GENIMAGE_ROOT>\train\sdv4\{ai,nature}.
 python .\train.py \
     --name genimg_sdv4_ft \
@@ -263,11 +280,11 @@ python .\evaluate_genimage.py \
     --out_csv .\results\results_genimage_ft.csv
 ```
 
-Tips:
-- Use `--skip_bench_eval` for GenImage training to avoid the built-in ForenSynths benchmark loop.
-- If you don’t have tensorboardX installed, the code automatically falls back to `torch.utils.tensorboard` (install TensorBoard with `pip install tensorboard` to enable logging).
+Mẹo:
+- Dùng `--skip_bench_eval` khi train GenImage để bỏ vòng đánh giá ForenSynths tích hợp.
+- Nếu chưa có tensorboardX, code sẽ dùng `torch.utils.tensorboard` (cài TensorBoard bằng `pip install tensorboard`).
 
-### Compare with external results without re-running
+### So sánh với kết quả bên ngoài mà không cần chạy lại
 
 If you already have an external results CSV (e.g., exported from your Google Drive sheet) with columns `subset,acc,ap`, you can compare it with our local CSV without re-running evaluation:
 
@@ -275,16 +292,16 @@ If you already have an external results CSV (e.g., exported from your Google Dri
 python .\tools\compare_results.py --ours .\results\results_genimage.csv --baseline <PATH_TO_BASELINE_CSV> --out .\results\results_comparison.csv
 ```
 
-Notes:
-- Values can be in 0–1 (will be converted to %) or 0–100 (%). Column names must include `subset,acc,ap`.
-- The script outputs per-subset diffs and a mean delta row.
+Ghi chú:
+- Giá trị có thể ở dạng 0–1 (sẽ quy đổi thành %) hoặc 0–100 (%). Cột cần có `subset,acc,ap`.
+- Script xuất chênh lệch theo từng tập và dòng trung bình.
 
-## Detection Results
+## Kết quả phát hiện
 
-### [AIGCDetectBenchmark](https://drive.google.com/drive/folders/1p4ewuAo7d5LbNJ4cKyh10Xl9Fg2yoFOw) using [ProGAN-4class checkpoint](https://github.com/chuangchuangtan/NPR-DeepfakeDetection/blob/main/model_epoch_last_3090.pth)
+### [AIGCDetectBenchmark](https://drive.google.com/drive/folders/1p4ewuAo7d5LbNJ4cKyh10Xl9Fg2yoFOw) dùng [checkpoint ProGAN-4class](https://github.com/chuangchuangtan/NPR-DeepfakeDetection/blob/main/model_epoch_last_3090.pth)
 
-When testing on AIGCDetectBenchmark, set no_resize and no_crop to True, and set batch_size to 1.
-To deal with images of odd sizes, add the following code in [network/resnet.py](https://github.com/chuangchuangtan/NPR-DeepfakeDetection/blob/e2dbbe673c69c0c7237726e809a725a0308ec43d/networks/resnet.py#L163).
+Khi test AIGCDetectBenchmark, đặt `no_resize` và `no_crop` = True, `batch_size` = 1.
+Để xử lý ảnh kích thước lẻ, thêm đoạn sau trong [network/resnet.py](https://github.com/chuangchuangtan/NPR-DeepfakeDetection/blob/e2dbbe673c69c0c7237726e809a725a0308ec43d/networks/resnet.py#L163):
 ```
 n,c,w,h = x.shape
 if w%2 == 1 : x = x[:,:,:-1,:]
@@ -391,12 +408,12 @@ Train with sdv4 as the training set, using a random seed of 70. [Pretrained chec
 | NPR(our)               | 99.8  | 100.0 | 96.3   | 99.8| 97.3  | 100.0| 87.5| 94.5   | 95.0    | 99.5 | 99.7  | 100.0 | 86.6  | 88.8  | 77.4 | 86.2 | 92.5 | 96.1 |
 -->
 
-## Acknowledgments
+## Ghi nhận
 
-This repository borrows partially from [CNNDetection](https://github.com/PeterWang512/CNNDetection) (Wang et al., CVPR 2020).
+Kho mã này tham khảo một phần từ [CNNDetection](https://github.com/PeterWang512/CNNDetection) (Wang et al., CVPR 2020).
 
-- License notice: CNNDetection is released under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) license. Portions adapted here inherit the same non-commercial and share-alike obligations. See Third-Party Notices for details.
-- If you build on this work, please also consider citing CNNDetection:
+- Giấy phép: CNNDetection phát hành theo CC BY-NC-SA 4.0. Các phần kế thừa giữ nguyên nghĩa vụ phi thương mại và chia sẻ tương tự.
+- Nếu bạn xây dựng tiếp trên công việc này, vui lòng trích dẫn CNNDetection:
 
 ```
 @inproceedings{wang2019cnngenerated,
@@ -407,4 +424,4 @@ This repository borrows partially from [CNNDetection](https://github.com/PeterWa
 }
 ```
 
-See Third-Party Notices for license details and links.
+Xem mục Third-Party Notices để biết chi tiết giấy phép và liên kết.
