@@ -77,3 +77,4 @@ GENERATED: 2025-11-21
 MODEL: trained_model_forensynths_100acc/model_epoch_last.pth
 EVALUATION SCRIPT: evaluate_all_datasets.py
 TRAINING PLATFORM: Kaggle (P100 GPU)
+ForenSynths Val,Baseline vs Improved,+53.30%,N/A,N/A,N/A,N/A,1600,Comparison,46.70% → 100.00%
