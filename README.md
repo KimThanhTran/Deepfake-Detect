@@ -46,6 +46,15 @@ Bản này bổ sung các cải tiến thực tế nhằm tăng khả năng tổ
 - Mean 3 bộ chính (ForenSynths + UniversalFD + GANGen): 85.40%.
 - Cải thiện so với baseline ForenSynths: +53.30% (46.7% → 100.0%), vượt mục tiêu 72–75% (+25–28%).
 
+### So sánh Baseline vs Bản Cải Tiến (Accuracy/AP/ROC-AUC)
+
+| Dataset           | Baseline (Acc) | Improved (Acc) | Δ Accuracy | AP Baseline | AP Improved | Δ AP | ROC-AUC Baseline | ROC-AUC Improved | Δ ROC-AUC |
+|-------------------|-----------------|----------------|------------|-------------|-------------|------|------------------|------------------|-----------|
+| ForenSynths Val   | 46.70%         | 100.00%        | +53.30%    | N/A         | 100.00%     | N/A  | N/A              | 100.00%          | N/A       |
+
+Ghi chú:
+- Bảng sẽ tự mở rộng khi có thêm hàng baseline cho các bộ dữ liệu khác. Script `tools/append_baseline_vs_improved.py` sẽ tự động thêm hàng “Baseline vs Improved” vào `TOTAL_RESULTS.csv` khi có cặp baseline/trained.
+
 ## Khởi chạy nhanh (Windows PowerShell)
 
 1) Tạo môi trường và cài đặt phụ thuộc
