@@ -1,0 +1,23 @@
+# Keep the build context small — only networks/ and gradio_ui.py are copied
+.git
+.claude
+__pycache__
+*.pyc
+*.pth
+*.pt
+*.onnx
+*.ckpt
+*.zip
+*.png
+*.xlsx
+*.csv
+*.md
+dataset/
+data/
+results/
+checkpoints/
+weights/
+assets/
+attendance/
+trained_model_forensynths_100acc/
+kaggle_upload/

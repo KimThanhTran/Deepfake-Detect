@@ -47,27 +47,34 @@ def build_transform(crop_size: int = 224):
 
 # ---------- Model loading ----------
 _MODEL = None
+_MODEL_PATH = None
 _DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 _TRANSFORM = build_transform(224)
 
 
 def load_model(model_path: str):
-    global _MODEL
+    global _MODEL, _MODEL_PATH
     model = resnet50(num_classes=1)
     state = torch.load(model_path, map_location='cpu')
     sd = state['model'] if isinstance(state, dict) and 'model' in state else state
     from collections import OrderedDict
     if any(k.startswith('module.') for k in sd.keys()):
         sd = OrderedDict((k.replace('module.', ''), v) for k, v in sd.items())
-    model.load_state_dict(sd, strict=False)
+    missing, unexpected = model.load_state_dict(sd, strict=False)
+    if missing or unexpected:
+        print(f"[warn] Checkpoint mismatch — missing keys: {missing}, unexpected keys: {unexpected}")
     model.to(_DEVICE)
     model.eval()
     _MODEL = model
-    return f"Loaded model: {os.path.basename(model_path)} on {_DEVICE}"
+    _MODEL_PATH = model_path
+    status = f"Loaded model: {os.path.basename(model_path)} on {_DEVICE}"
+    if missing or unexpected:
+        status += f" (WARNING: {len(missing)} missing / {len(unexpected)} unexpected keys — predictions may be unreliable)"
+    return status
 
 
 def ensure_model(model_path: str):
-    if _MODEL is None:
+    if _MODEL is None or _MODEL_PATH != model_path:
         return load_model(model_path)
     return f"Model already loaded on {_DEVICE}"
 

@@ -1,0 +1,15 @@
+services:
+  deepfake-detect:
+    build: .
+    container_name: deepfake-detect
+    ports:
+      - "7860:7860"
+    volumes:
+      # Đặt các file trọng số (.pth) vào thư mục ./weights trên máy host:
+      #   weights/NPR.pth                 <- baseline
+      #   weights/model_epoch_last.pth    <- model đã train
+      - ./weights:/app/weights:ro
+    environment:
+      NPR_BASELINE_PATH: /app/weights/NPR.pth
+      NPR_TRAINED_PATH: /app/weights/model_epoch_last.pth
+    restart: unless-stopped
