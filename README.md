@@ -55,6 +55,29 @@ Bản này bổ sung các cải tiến thực tế nhằm tăng khả năng tổ
 Ghi chú:
 - Bảng sẽ tự mở rộng khi có thêm hàng baseline cho các bộ dữ liệu khác. Script `tools/append_baseline_vs_improved.py` sẽ tự động thêm hàng “Baseline vs Improved” vào `TOTAL_RESULTS.csv` khi có cặp baseline/trained.
 
+## Chạy bằng Docker (Gradio UI)
+
+1) Chép file trọng số vào thư mục `weights/` ở gốc repo:
+
+```
+weights/
+├── NPR.pth                  # baseline
+└── model_epoch_last.pth     # model đã train (tùy chọn)
+```
+
+2) Build và chạy:
+
+```powershell
+docker compose up --build -d
+```
+
+3) Mở trình duyệt: http://localhost:7860
+
+Lưu ý:
+- Image dùng PyTorch bản CPU cho gọn. Nếu muốn dùng GPU, đổi index URL trong `Dockerfile` sang `https://download.pytorch.org/whl/cu121` và thêm cấu hình GPU vào `docker-compose.yml`.
+- Cần ít nhất một file `.pth` trong `weights/`, nếu không container sẽ thoát ngay khi khởi động.
+- Xem log: `docker compose logs -f`; dừng: `docker compose down`.
+
 ## Khởi chạy nhanh (Windows PowerShell)
 
 1) Tạo môi trường và cài đặt phụ thuộc

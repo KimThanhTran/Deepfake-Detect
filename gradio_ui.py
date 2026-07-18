@@ -14,10 +14,12 @@ print("=" * 70)
 print("NPR DEEPFAKE DETECTION - GRADIO UI")
 print("=" * 70)
 
-# Model paths
+# Model paths (override via env vars when running in Docker)
 MODEL_PATHS = {
-    "Baseline (NPR.pth - 46.7%)": "NPR.pth",
-    "Trained Model (100% ForenSynths)": "trained_model_forensynths_100acc/model_epoch_last.pth"
+    "Baseline (NPR.pth)": os.environ.get(
+        "NPR_BASELINE_PATH", "NPR.pth"),
+    "Trained Model (ForenSynths)": os.environ.get(
+        "NPR_TRAINED_PATH", "trained_model_forensynths_100acc/model_epoch_last.pth")
 }
 
 # Load models
@@ -28,6 +30,11 @@ for name, path in MODEL_PATHS.items():
         try:
             model = resnet50(num_classes=1)
             state_dict = torch.load(path, map_location='cpu')
+            # Checkpoint may be wrapped in {'model': ...} and/or saved from DataParallel ('module.' prefix)
+            if isinstance(state_dict, dict) and 'model' in state_dict:
+                state_dict = state_dict['model']
+            if any(k.startswith('module.') for k in state_dict.keys()):
+                state_dict = {k.replace('module.', '', 1): v for k, v in state_dict.items()}
             model.load_state_dict(state_dict)
             model.eval()
             models[name] = model
@@ -45,23 +52,40 @@ print(f"\nLoaded {len(models)} model(s)")
 print("=" * 70)
 
 # Image preprocessing
+# NPR detects up-sampling artifacts (x - interpolate(x, 0.5)); any resize
+# resamples the whole image and erases that signal, so the image must be
+# tiled up to 224 if too small, then center-cropped — never resized.
+def translate_duplicate(image, crop_size=224):
+    """Tile small images so CenterCrop never pads/upscales"""
+    if min(image.size) < crop_size:
+        width, height = image.size
+        tiles_x = int(np.ceil(crop_size / width))
+        tiles_y = int(np.ceil(crop_size / height))
+        new_img = Image.new('RGB', (width * tiles_x, height * tiles_y))
+        for i in range(tiles_x):
+            for j in range(tiles_y):
+                new_img.paste(image, (i * width, j * height))
+        return new_img
+    return image
+
 def preprocess_image(image):
     """Preprocess image for model input"""
     if image is None:
         return None
-    
+
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
-    
-    # Standard ImageNet normalization
+
+    # Match the training/eval pipeline: center crop 224, NO resize
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Lambda(lambda img: translate_duplicate(img, 224)),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
                            std=[0.229, 0.224, 0.225])
     ])
-    
+
     return transform(image).unsqueeze(0)
 
 def predict(image, model_name):
