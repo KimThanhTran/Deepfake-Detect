@@ -45,17 +45,10 @@ def validate(model, opt):
 if __name__ == '__main__':
     opt = TestOptions().parse(print_options=False)
 
-    model = resnet50(num_classes=1)
-    state_dict = torch.load(opt.model_path, map_location='cpu')
-    
-    # Handle different checkpoint formats
-    if 'model' in state_dict:
-        model.load_state_dict(state_dict['model'])
-    elif 'state_dict' in state_dict:
-        model.load_state_dict(state_dict['state_dict'])
-    else:
-        # Direct model weights
-        model.load_state_dict(state_dict)
+    from util import build_npr_model
+    model, adaptive = build_npr_model(opt.model_path)
+    if adaptive:
+        print('[info] AdaptiveNPR checkpoint detected — using adaptive architecture')
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model.to(device)

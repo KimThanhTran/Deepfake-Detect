@@ -13,7 +13,6 @@ __pycache__
 *.csv
 *.md
 dataset/
-data/
 results/
 checkpoints/
 weights/

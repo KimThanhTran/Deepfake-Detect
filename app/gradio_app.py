@@ -54,22 +54,15 @@ _TRANSFORM = build_transform(224)
 
 def load_model(model_path: str):
     global _MODEL, _MODEL_PATH
-    model = resnet50(num_classes=1)
-    state = torch.load(model_path, map_location='cpu')
-    sd = state['model'] if isinstance(state, dict) and 'model' in state else state
-    from collections import OrderedDict
-    if any(k.startswith('module.') for k in sd.keys()):
-        sd = OrderedDict((k.replace('module.', ''), v) for k, v in sd.items())
-    missing, unexpected = model.load_state_dict(sd, strict=False)
-    if missing or unexpected:
-        print(f"[warn] Checkpoint mismatch — missing keys: {missing}, unexpected keys: {unexpected}")
+    from util import build_npr_model
+    model, adaptive = build_npr_model(model_path)
     model.to(_DEVICE)
     model.eval()
     _MODEL = model
     _MODEL_PATH = model_path
     status = f"Loaded model: {os.path.basename(model_path)} on {_DEVICE}"
-    if missing or unexpected:
-        status += f" (WARNING: {len(missing)} missing / {len(unexpected)} unexpected keys — predictions may be unreliable)"
+    if adaptive:
+        status += " (AdaptiveNPR)"
     return status
 
 

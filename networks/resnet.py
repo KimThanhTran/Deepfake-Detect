@@ -167,6 +167,13 @@ class ResNet(nn.Module):
         # n,c,w,h = x.shape
         # if w%2 == 1 : x = x[:,:,:-1,:]
         # if h%2 == 1 : x = x[:,:,:,:-1]
+        x = self.forward_features(x)
+        x = self.fc1(x)
+
+        return x
+
+    def forward_features(self, x):
+        """Pooled 512-d NPR features (everything except the final classifier)."""
         if self.adaptive_npr_enabled:
             NPR = self.npr(x)
         else:
@@ -182,8 +189,6 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-
         return x
 
 
