@@ -72,15 +72,18 @@ class ListDataset(Dataset):
         return self.transform(img), label
 
 
-def evaluate_subset(model, device, subset_dir, batch_size, num_workers):
+def evaluate_subset(model, device, subset_dir, batch_size, num_workers, center_crop=0):
     samples = collect_samples(subset_dir)
     if not samples:
         return None
-    tf = transforms.Compose([
-        transforms.Resize((256, 256)),
+    steps = [transforms.Resize((256, 256))]
+    if center_crop:
+        steps.append(transforms.CenterCrop(center_crop))
+    steps += [
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    ]
+    tf = transforms.Compose(steps)
     loader = DataLoader(ListDataset(samples, tf), batch_size=batch_size,
                         shuffle=False, num_workers=num_workers)
     y_true, y_score = [], []
@@ -148,6 +151,8 @@ def main():
     p.add_argument('--batch_size', type=int, default=32)
     p.add_argument('--num_workers', type=int, default=4)
     p.add_argument('--label', default=None, help='model label used in figures')
+    p.add_argument('--center_crop', type=int, default=0,
+                   help='center-crop size after resize (e.g. 224 to match a model trained on crops); 0 = off')
     p.add_argument('--arch', choices=['npr', 'hybrid', 'hsf'], default='npr',
                    help='npr: plain NPR checkpoint; hybrid: HybridNPRDetector checkpoint; '
                         'hsf: HybridSpatialFrequencyModel (Deepfake-Detect-baseline repo)')
@@ -184,7 +189,7 @@ def main():
         if not os.path.isdir(sd):
             print(f'[skip] {s}: not found')
             continue
-        r = evaluate_subset(model, device, sd, args.batch_size, args.num_workers)
+        r = evaluate_subset(model, device, sd, args.batch_size, args.num_workers, args.center_crop)
         if r is None:
             print(f'[skip] {s}: no images')
             continue
