@@ -107,7 +107,23 @@ def evaluate_subset(model, device, subset_dir, batch_size, num_workers, center_c
         'auc': roc_auc_score(y_true, y_score) if len(set(y_true)) > 1 else np.nan,
         'tn': int(tn), 'fp': int(fp), 'fn': int(fn), 'tp': int(tp),
     }
+    row.update(derived_metrics(tn, fp, fn, tp))
     return row
+
+
+def derived_metrics(tn, fp, fn, tp):
+    """Precision/recall/F1/etc. for the fake (positive) class from confusion counts."""
+    tn, fp, fn, tp = float(tn), float(fp), float(fn), float(tp)
+    precision = tp / (tp + fp) if (tp + fp) else float('nan')
+    recall = tp / (tp + fn) if (tp + fn) else float('nan')          # = fake_acc (TPR)
+    specificity = tn / (tn + fp) if (tn + fp) else float('nan')     # = real_acc (TNR)
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else float('nan')
+    balanced_acc = (recall + specificity) / 2
+    fpr = fp / (fp + tn) if (fp + tn) else float('nan')
+    mcc_den = ((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) ** 0.5
+    mcc = (tp * tn - fp * fn) / mcc_den if mcc_den else float('nan')
+    return {'precision': precision, 'recall': recall, 'f1': f1,
+            'balanced_acc': balanced_acc, 'fpr': fpr, 'mcc': mcc}
 
 
 def plot_confusions(rows, out_path, model_label):
@@ -203,22 +219,22 @@ def main():
         return
 
     # Mean row
-    mean = {k: float(np.mean([r[k] for r in rows.values()])) for k in ['acc', 'real_acc', 'fake_acc', 'ap', 'auc']}
+    METRIC_KEYS = ['acc', 'real_acc', 'fake_acc', 'ap', 'auc',
+                   'precision', 'recall', 'f1', 'balanced_acc', 'fpr', 'mcc']
+    mean = {k: float(np.nanmean([r[k] for r in rows.values()])) for k in METRIC_KEYS}
     print(f'{"MEAN":12s} acc={mean["acc"]*100:6.2f}%  real={mean["real_acc"]*100:6.2f}%  '
-          f'fake={mean["fake_acc"]*100:6.2f}%  AP={mean["ap"]*100:6.2f}%  AUC={mean["auc"]*100:6.2f}%')
+          f'fake={mean["fake_acc"]*100:6.2f}%  AP={mean["ap"]*100:6.2f}%  AUC={mean["auc"]*100:6.2f}%  '
+          f'P={mean["precision"]*100:6.2f}%  R={mean["recall"]*100:6.2f}%  F1={mean["f1"]*100:6.2f}%')
 
     csv_path = os.path.join(args.out_dir, 'metrics.csv')
     with open(csv_path, 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['subset', 'n_real', 'n_fake', 'acc', 'real_acc', 'fake_acc', 'ap', 'auc', 'tn', 'fp', 'fn', 'tp'])
+        w.writerow(['subset', 'n_real', 'n_fake'] + METRIC_KEYS + ['tn', 'fp', 'fn', 'tp'])
         for s, r in rows.items():
-            w.writerow([s, r['n_real'], r['n_fake'],
-                        f'{r["acc"]*100:.2f}', f'{r["real_acc"]*100:.2f}', f'{r["fake_acc"]*100:.2f}',
-                        f'{r["ap"]*100:.2f}', f'{r["auc"]*100:.2f}',
-                        r['tn'], r['fp'], r['fn'], r['tp']])
-        w.writerow(['Mean', '', '',
-                    f'{mean["acc"]*100:.2f}', f'{mean["real_acc"]*100:.2f}', f'{mean["fake_acc"]*100:.2f}',
-                    f'{mean["ap"]*100:.2f}', f'{mean["auc"]*100:.2f}', '', '', '', ''])
+            w.writerow([s, r['n_real'], r['n_fake']]
+                       + [f'{r[k]*100:.2f}' for k in METRIC_KEYS]
+                       + [r['tn'], r['fp'], r['fn'], r['tp']])
+        w.writerow(['Mean', '', ''] + [f'{mean[k]*100:.2f}' for k in METRIC_KEYS] + ['', '', '', ''])
     print(f'Saved {csv_path}')
 
     png_path = os.path.join(args.out_dir, 'confusion_matrices.png')
