@@ -148,8 +148,9 @@ def main():
     p.add_argument('--batch_size', type=int, default=32)
     p.add_argument('--num_workers', type=int, default=4)
     p.add_argument('--label', default=None, help='model label used in figures')
-    p.add_argument('--arch', choices=['npr', 'hybrid'], default='npr',
-                   help='npr: plain NPR checkpoint; hybrid: HybridNPRDetector checkpoint')
+    p.add_argument('--arch', choices=['npr', 'hybrid', 'hsf'], default='npr',
+                   help='npr: plain NPR checkpoint; hybrid: HybridNPRDetector checkpoint; '
+                        'hsf: HybridSpatialFrequencyModel (Deepfake-Detect-baseline repo)')
     p.add_argument('--spatial_model_path', default='weights/NPR.pth',
                    help='spatial NPR checkpoint used to construct the hybrid model')
     args = p.parse_args()
@@ -159,6 +160,13 @@ def main():
         from networks.frequency_branch import HybridNPRDetector
         model = HybridNPRDetector(spatial_model_path=args.spatial_model_path)
         model.load_state_dict(torch.load(args.model_path, map_location='cpu'))
+        adaptive = False
+    elif args.arch == 'hsf':
+        from networks.hsf_model import build_hybrid_model
+        ck = torch.load(args.model_path, map_location='cpu', weights_only=False)
+        sd = ck.get('model', ck) if isinstance(ck, dict) else ck
+        model = build_hybrid_model()
+        model.load_state_dict(sd)
         adaptive = False
     else:
         model, adaptive = build_npr_model(args.model_path)
