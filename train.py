@@ -144,7 +144,10 @@ if __name__ == '__main__':
                 if train_writer:
                     train_writer.add_scalar('loss', model.loss, model.total_steps)
 
-        if epoch % opt.delr_freq == 0 and epoch != 0:
+        if model.scheduler is not None:
+            # Cosine decay: one step per epoch (T_max = niter epochs)
+            model.step_scheduler()
+        elif epoch % opt.delr_freq == 0 and epoch != 0:
             print(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()), 'changing lr at the end of epoch %d, iters %d' %
                   (epoch, model.total_steps))
             model.adjust_learning_rate()

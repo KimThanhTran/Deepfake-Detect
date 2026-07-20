@@ -79,94 +79,60 @@ class FrequencyBranch(nn.Module):
         return x
 
 class HybridNPRDetector(nn.Module):
-    """Hybrid detector combining spatial and frequency branches"""
+    """Hybrid detector: frozen NPR spatial branch + trainable frequency branch.
+
+    The spatial branch is the actual NPR network (truncated ResNet-50 operating
+    on the NPR residual), loaded strictly from a trained checkpoint and frozen.
+    Only the frequency branch and the fusion head are trained.
+    """
     def __init__(self, spatial_model_path, feature_dim=256):
         super(HybridNPRDetector, self).__init__()
-        
-        # Load spatial branch
-        print(f"Loading spatial branch from: {spatial_model_path}")
-        checkpoint = torch.load(spatial_model_path, map_location='cpu')
-        
-        # Extract state dict
-        if isinstance(checkpoint, dict) and 'model' in checkpoint:
-            state_dict = checkpoint['model']
-        else:
-            state_dict = checkpoint
-        
-        # Check conv1 shape from checkpoint
-        conv1_weight = state_dict.get('conv1.weight')
-        if conv1_weight is not None:
-            conv1_shape = conv1_weight.shape
-            print(f"Checkpoint conv1 shape: {conv1_shape}")
-            is_custom_conv1 = (conv1_shape[2:] == torch.Size([3, 3]))
-        else:
-            is_custom_conv1 = False
-        
-        # Build spatial feature extractor
-        import torchvision.models as models
-        base_model = models.resnet50(weights=None)
-        
-        # Modify conv1 if needed
-        if is_custom_conv1:
-            print("Detected custom 3x3 conv1, modifying architecture...")
-            base_model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        
-        # Load state dict - only keep layers that match, ignore fc layers
-        model_dict = base_model.state_dict()
-        filtered_state_dict = {}
-        
-        for k, v in state_dict.items():
-            # Skip fc layers
-            if k.startswith('fc') or k.startswith('classifier'):
-                continue
-            # Only load if key exists in model and shapes match
-            if k in model_dict and model_dict[k].shape == v.shape:
-                filtered_state_dict[k] = v
-        
-        print(f"Loading {len(filtered_state_dict)}/{len(model_dict)} matching layers")
-        base_model.load_state_dict(filtered_state_dict, strict=False)
-        
-        # Remove fc layer and create feature extractor
-        self.spatial_branch = nn.Sequential(*list(base_model.children())[:-1])
-        
-        # CRITICAL FIX: Detect spatial feature dimension by running a dummy forward pass
-        with torch.no_grad():
-            dummy_input = torch.randn(1, 3, 224, 224)
-            spatial_feat_dim = self.spatial_branch(dummy_input).view(1, -1).shape[1]
-        print(f"Detected spatial feature dimension: {spatial_feat_dim}")
-        
+
+        print(f"Loading spatial branch (NPR) from: {spatial_model_path}")
+        from util import build_npr_model
+        self.spatial_branch, adaptive = build_npr_model(spatial_model_path)
+        if adaptive:
+            print("AdaptiveNPR checkpoint detected")
+
+        # Freeze spatial branch: no gradients, and BatchNorm stays in eval mode
+        for p in self.spatial_branch.parameters():
+            p.requires_grad = False
+        self.spatial_branch.eval()
+
+        spatial_feat_dim = self.spatial_branch.fc1.in_features  # 512
+        print(f"Spatial feature dimension: {spatial_feat_dim}")
+
         # Frequency branch
         self.frequency_branch = FrequencyBranch(feature_dim=feature_dim)
-        
-        # Fusion layers - use detected spatial_feat_dim instead of hardcoded 2048
+
         self.fusion = nn.Sequential(
             nn.Linear(spatial_feat_dim + feature_dim, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
             nn.Linear(512, 1)
         )
-        
-        # Count parameters
-        spatial_params = sum(p.numel() for p in self.spatial_branch.parameters())
-        freq_params = sum(p.numel() for p in self.frequency_branch.parameters())
-        fusion_params = sum(p.numel() for p in self.fusion.parameters())
-        trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        
-        print(f"Spatial branch params: {spatial_params:,}")
-        print(f"Frequency branch params: {freq_params:,}")
-        print(f"Fusion params: {fusion_params:,}")
-        print(f"Trainable params: {trainable_params:,}")
-    
+
+        info = self.get_trainable_params()
+        print(f"Total params: {info['total']:,} | trainable: {info['trainable']:,} | frozen: {info['frozen']:,}")
+
+    def get_trainable_params(self):
+        total = sum(p.numel() for p in self.parameters())
+        trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        return {'total': total, 'trainable': trainable, 'frozen': total - trainable}
+
+    def train(self, mode=True):
+        # Keep the frozen spatial branch in eval mode (fixed BatchNorm statistics)
+        super().train(mode)
+        self.spatial_branch.eval()
+        return self
+
     def forward(self, x):
-        # Spatial features
-        spatial_feat = self.spatial_branch(x)
-        spatial_feat = spatial_feat.view(spatial_feat.size(0), -1)
-        
-        # Frequency features
+        with torch.no_grad():
+            spatial_feat = self.spatial_branch.forward_features(x)
+
         freq_feat = self.frequency_branch(x)
-        
-        # Concatenate and fuse
+
         combined = torch.cat([spatial_feat, freq_feat], dim=1)
         output = self.fusion(combined)
-        
+
         return output

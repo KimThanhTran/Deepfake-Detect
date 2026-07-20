@@ -51,8 +51,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, scaler, device, epo
         labels = labels.to(device).float()
         
         # Mixed precision training
-        with autocast():
-            outputs = model(images).squeeze()
+        with autocast(enabled=scaler.is_enabled()):
+            outputs = model(images).squeeze(1)
             loss = criterion(outputs, labels)
         
         # Backward
@@ -99,9 +99,9 @@ def validate(model, dataloader, criterion, device, epoch):
             images = images.to(device)
             labels = labels.to(device).float()
             
-            outputs = model(images).squeeze()
+            outputs = model(images).squeeze(1)
             loss = criterion(outputs, labels)
-            
+
             running_loss += loss.item()
             
             probs = torch.sigmoid(outputs)
@@ -172,10 +172,10 @@ def main(args):
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory: {output_dir}\n")
     
-    # Logger
-    logger = Logger(os.path.join(output_dir, 'train.log'))
-    logger.info(f"Training started at {datetime.now()}")
-    logger.info(f"Arguments: {args}")
+    # Logger tees stdout to the log file, so plain print() is logged
+    Logger(os.path.join(output_dir, 'train.log'))
+    print(f"Training started at {datetime.now()}")
+    print(f"Arguments: {args}")
     
     # Load model
     print("Loading Hybrid NPR Detector...")
@@ -193,25 +193,25 @@ def main(args):
     print(f"  Frozen: {params_info['frozen']:,}")
     print(f"  Trainable ratio: {100*params_info['trainable']/params_info['total']:.2f}%\n")
     
-    logger.info(f"Model parameters: {params_info}")
-    
-    # Data loaders
+    print(f"Model parameters: {params_info}")
+
+    # Data loaders — create_dataloader(opt) expects an options object with the
+    # same fields the training pipeline uses (see options/base_options.py)
+    from argparse import Namespace
+
+    def make_data_opt(root, is_train):
+        return Namespace(
+            dataroot=root, classes=args.classes, mode='binary', isTrain=is_train,
+            no_crop=False, no_flip=not is_train, no_resize=False,
+            cropSize=224, loadSize=256, class_bal=False, serial_batches=not is_train,
+            batch_size=args.batch_size, num_threads=args.num_workers,
+            rz_interp=['bilinear'], blur_prob=0.0, blur_sig=[0.5],
+            jpg_prob=0.0, jpg_method=['cv2'], jpg_qual=[75],
+        )
+
     print("Loading data...")
-    train_loader = create_dataloader(
-        dataroot=args.dataroot,
-        classes=args.classes,
-        mode='train',
-        batch_size=args.batch_size,
-        num_workers=args.num_workers
-    )
-    
-    val_loader = create_dataloader(
-        dataroot=args.dataroot,
-        classes=args.classes,
-        mode='val',
-        batch_size=args.batch_size,
-        num_workers=args.num_workers
-    )
+    train_loader = create_dataloader(make_data_opt(os.path.join(args.dataroot, 'train'), True))
+    val_loader = create_dataloader(make_data_opt(os.path.join(args.dataroot, 'val'), False))
     
     print(f"Train samples: {len(train_loader.dataset)}")
     print(f"Val samples: {len(val_loader.dataset)}\n")
@@ -234,8 +234,8 @@ def main(args):
     # Loss function
     criterion = nn.BCEWithLogitsLoss()
     
-    # Mixed precision scaler
-    scaler = GradScaler()
+    # Mixed precision scaler (only meaningful on CUDA)
+    scaler = GradScaler(enabled=torch.cuda.is_available())
     
     # Training loop
     best_acc = 0.0
@@ -270,9 +270,9 @@ def main(args):
         print(f"  Learning Rate: {current_lr:.6f}")
         
         # Log
-        logger.info(f"Epoch {epoch+1}/{args.epochs} - "
-                   f"Train: {train_loss:.4f}/{train_acc:.2f}% - "
-                   f"Val: {val_metrics['loss']:.4f}/{val_metrics['acc']:.2f}%/{val_metrics['ap']:.2f}%")
+        print(f"Epoch {epoch+1}/{args.epochs} - "
+              f"Train: {train_loss:.4f}/{train_acc:.2f}% - "
+              f"Val: {val_metrics['loss']:.4f}/{val_metrics['acc']:.2f}%/{val_metrics['ap']:.2f}%")
         
         # Save history
         training_history.append({
@@ -296,7 +296,6 @@ def main(args):
             save_path = os.path.join(output_dir, 'model_best.pth')
             torch.save(model.state_dict(), save_path)
             print(f"\n  ✓ Saved best model (acc={val_metrics['acc']:.2f}%)")
-            logger.info(f"Saved best model at epoch {epoch+1}")
         
         # Save checkpoint every 5 epochs
         if (epoch + 1) % 5 == 0:
@@ -317,8 +316,8 @@ def main(args):
     print(f"Output Directory: {output_dir}")
     print(f"{'='*70}\n")
     
-    logger.info(f"Training completed. Best acc: {best_acc:.2f}% at epoch {best_epoch}")
-    logger.info(f"Total time: {hours}h {minutes}m")
+    print(f"Training completed. Best acc: {best_acc:.2f}% at epoch {best_epoch}")
+    print(f"Total time: {hours}h {minutes}m")
     
     # Save training history
     import csv

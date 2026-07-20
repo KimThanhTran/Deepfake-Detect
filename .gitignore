@@ -4,8 +4,8 @@ __pycache__/
 *.pyo
 
 # Datasets and large generated content
+# (do NOT ignore data/ — it is the dataloader Python package)
 dataset/
-data/
 results/
 checkpoints/
 trained_model_forensynths_100acc/
@@ -18,6 +18,9 @@ attendance/logs.csv
 *.onnx
 *.ckpt
 *.ipynb
+# Exceptions: baseline weights + Kaggle notebook needed to reproduce training
+!weights/NPR.pth
+!kaggle/*.ipynb
 
 # Kaggle packaging artifacts
 kaggle_upload.zip

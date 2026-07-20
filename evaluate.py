@@ -41,14 +41,11 @@ def main():
     opt.batch_size = args.batch_size
     opt.num_threads = 0
 
-    # Load model
-    model = resnet50(num_classes=1)
-    state = torch.load(args.model_path, map_location='cpu')
-    from collections import OrderedDict
-    sd = state['model'] if isinstance(state, dict) and 'model' in state else state
-    if any(k.startswith('module.') for k in sd.keys()):
-        sd = OrderedDict((k.replace('module.', ''), v) for k, v in sd.items())
-    model.load_state_dict(sd, strict=False)
+    # Load model (auto-detects AdaptiveNPR checkpoints, strict loading)
+    from util import build_npr_model
+    model, adaptive = build_npr_model(args.model_path)
+    if adaptive:
+        print('[info] AdaptiveNPR checkpoint detected — using adaptive architecture')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model.to(device)
     model.eval()

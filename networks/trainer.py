@@ -99,6 +99,10 @@ class Trainer(BaseModel):
         else:
             self.loss.backward()
             self.optimizer.step()
+
+    def step_scheduler(self):
+        """Call once per EPOCH (T_max of CosineAnnealingLR is measured in epochs)."""
         if self.scheduler is not None:
             self.scheduler.step()
+            self.lr = self.optimizer.param_groups[0]['lr']
 

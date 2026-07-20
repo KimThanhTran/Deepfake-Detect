@@ -13,3 +13,19 @@ services:
       NPR_BASELINE_PATH: /app/weights/NPR.pth
       NPR_TRAINED_PATH: /app/weights/model_epoch_last.pth
     restart: unless-stopped
+
+  # Training (CPU). Chạy bằng:
+  #   docker compose --profile train run --rm train \
+  #     python train.py --name my_run --dataroot dataset/ForenSynths \
+  #       --batch_size 32 --niter 10 --num_threads 8 --skip_bench_eval
+  # Dataset đặt trong ./dataset trên host; checkpoint lưu ra ./checkpoints.
+  train:
+    build: .
+    profiles: ["train"]
+    shm_size: "2gb"
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      OMP_NUM_THREADS: "8"
+    command: python train.py --help

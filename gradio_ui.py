@@ -25,20 +25,14 @@ MODEL_PATHS = {
 # Load models
 print("\nLoading models...")
 models = {}
+from util import build_npr_model
 for name, path in MODEL_PATHS.items():
     if os.path.exists(path):
         try:
-            model = resnet50(num_classes=1)
-            state_dict = torch.load(path, map_location='cpu')
-            # Checkpoint may be wrapped in {'model': ...} and/or saved from DataParallel ('module.' prefix)
-            if isinstance(state_dict, dict) and 'model' in state_dict:
-                state_dict = state_dict['model']
-            if any(k.startswith('module.') for k in state_dict.keys()):
-                state_dict = {k.replace('module.', '', 1): v for k, v in state_dict.items()}
-            model.load_state_dict(state_dict)
+            model, adaptive = build_npr_model(path)
             model.eval()
             models[name] = model
-            print(f"  [OK] {name}")
+            print(f"  [OK] {name}" + (" (AdaptiveNPR)" if adaptive else ""))
         except Exception as e:
             print(f"  [ERROR] {name}: {str(e)}")
     else:
