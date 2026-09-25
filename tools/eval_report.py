@@ -94,8 +94,14 @@ def evaluate_subset(model, device, subset_dir, batch_size, num_workers, center_c
             y_true.extend(labels.numpy().tolist())
     y_true = np.array(y_true)
     y_score = np.array(y_score)
-    y_pred = (y_score > 0.5).astype(int)
+    row = metrics_row(y_true, y_score)
+    row['_scores'] = [(os.path.relpath(p, subset_dir).replace(os.sep, '/'), l, s)
+                      for (p, l), s in zip(samples, y_score)]
+    return row
 
+
+def metrics_row(y_true, y_score):
+    y_pred = (y_score > 0.5).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     row = {
         'n_real': int((y_true == 0).sum()),
@@ -174,6 +180,8 @@ def main():
                         'hsf: HybridSpatialFrequencyModel (Deepfake-Detect-baseline repo)')
     p.add_argument('--spatial_model_path', default='weights/NPR.pth',
                    help='spatial NPR checkpoint used to construct the hybrid model')
+    p.add_argument('--save_scores', action='store_true',
+                   help='also write per-image fake probabilities to scores.csv (input for tools/fuse_scores.py)')
     args = p.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -218,15 +226,32 @@ def main():
         print('No subsets evaluated.')
         return
 
-    # Mean row
-    METRIC_KEYS = ['acc', 'real_acc', 'fake_acc', 'ap', 'auc',
-                   'precision', 'recall', 'f1', 'balanced_acc', 'fpr', 'mcc']
+    write_report(rows, args.out_dir, label)
+
+    if args.save_scores:
+        scores_path = os.path.join(args.out_dir, 'scores.csv')
+        with open(scores_path, 'w', newline='') as f:
+            w = csv.writer(f)
+            w.writerow(['subset', 'relpath', 'label', 'score'])
+            for s, r in rows.items():
+                for relpath, lab, score in r['_scores']:
+                    w.writerow([s, relpath, int(lab), f'{score:.8f}'])
+        print(f'Saved {scores_path}')
+
+
+METRIC_KEYS = ['acc', 'real_acc', 'fake_acc', 'ap', 'auc',
+               'precision', 'recall', 'f1', 'balanced_acc', 'fpr', 'mcc']
+
+
+def write_report(rows, out_dir, label):
+    """Print the mean row and write metrics.csv + confusion_matrices.png for {subset: row}."""
     mean = {k: float(np.nanmean([r[k] for r in rows.values()])) for k in METRIC_KEYS}
     print(f'{"MEAN":12s} acc={mean["acc"]*100:6.2f}%  real={mean["real_acc"]*100:6.2f}%  '
           f'fake={mean["fake_acc"]*100:6.2f}%  AP={mean["ap"]*100:6.2f}%  AUC={mean["auc"]*100:6.2f}%  '
           f'P={mean["precision"]*100:6.2f}%  R={mean["recall"]*100:6.2f}%  F1={mean["f1"]*100:6.2f}%')
 
-    csv_path = os.path.join(args.out_dir, 'metrics.csv')
+    os.makedirs(out_dir, exist_ok=True)
+    csv_path = os.path.join(out_dir, 'metrics.csv')
     with open(csv_path, 'w', newline='') as f:
         w = csv.writer(f)
         w.writerow(['subset', 'n_real', 'n_fake'] + METRIC_KEYS + ['tn', 'fp', 'fn', 'tp'])
@@ -237,9 +262,10 @@ def main():
         w.writerow(['Mean', '', ''] + [f'{mean[k]*100:.2f}' for k in METRIC_KEYS] + ['', '', '', ''])
     print(f'Saved {csv_path}')
 
-    png_path = os.path.join(args.out_dir, 'confusion_matrices.png')
+    png_path = os.path.join(out_dir, 'confusion_matrices.png')
     plot_confusions(rows, png_path, label)
     print(f'Saved {png_path}')
+    return mean
 
 
 if __name__ == '__main__':
