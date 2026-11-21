@@ -235,7 +235,7 @@ def main():
             w.writerow(['subset', 'relpath', 'label', 'score'])
             for s, r in rows.items():
                 for relpath, lab, score in r['_scores']:
-                    w.writerow([s, relpath, int(lab), f'{score:.8f}'])
+                    w.writerow([s, relpath, int(lab), f'{score:.9g}'])
         print(f'Saved {scores_path}')
 
 

@@ -50,4 +50,5 @@ for ds in "${BENCHES[@]}"; do
 done
 
 python tools/augment_metrics.py results > results/scores/augment.log 2>&1
+python tools/significance.py --n_boot 1000 --out results/significance.csv > results/scores/significance.log 2>&1 && log "significance done" || log "FAILED significance"
 log ALL_DONE
